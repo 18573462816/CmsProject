@@ -12,8 +12,10 @@ import (
 type UserService interface {
 	//获取用户日增长统计数据
 	GetUserDailyStatisCount(datetime string) int64
+
 	//获取用户总数
 	GetUserTotalCount() (int64, error)
+
 	//用户列表
 	GetUserList(offset, limit int) []*model.User
 }

@@ -1,23 +1,22 @@
 package controller
 
 import (
-	"encoding/json"
 	"github.com/kataras/iris/v12"
 	"github.com/kataras/iris/v12/mvc"
 	"github.com/kataras/iris/v12/sessions"
-	"irisDemo/CmsProject/model"
 	"irisDemo/CmsProject/service"
 	utils "irisDemo/CmsProject/utils"
+	"strconv"
 )
 
-/*
-管理员控制器
+/**
+* 管理员控制器
 */
 type AdminController struct {
 	//iris框架自动为每个请求都绑定上下文对象
 	Ctx iris.Context
 
-	//admin功能结构体
+	//admin功能实体
 	Service service.AdminService
 
 	//session对象
@@ -25,8 +24,8 @@ type AdminController struct {
 }
 
 const (
-	ADMIN = "admin"
 	ADMINTABLENAME = "admin"
+	ADMIN          = "adminId"
 )
 
 type AdminLogin struct {
@@ -59,6 +58,7 @@ func (ac *AdminController) GetSingout() mvc.Result {
 func (ac *AdminController) GetCount() mvc.Result {
 
 	count, err := ac.Service.GetAdminCount()
+
 	if err != nil {
 		return mvc.Response{
 			Object: map[string]interface{}{
@@ -99,8 +99,12 @@ func (ac *AdminController) GetInfo() mvc.Result {
 	}
 
 	//解析数据到admin数据结构
-	var admin model.Admin
-	err := json.Unmarshal(userByte.([]byte), &admin)
+	//var admin = new(model.Admin)
+	//iris.New().Logger().Info(userByte)
+	//jsonStr := "" + userByte.(string) + ""
+	//admin = model.Decoder([]byte(jsonStr))
+
+	adminId, err := ac.Session.GetInt64(ADMIN)
 
 	//解析失败
 	if err != nil {
@@ -113,15 +117,26 @@ func (ac *AdminController) GetInfo() mvc.Result {
 		}
 	}
 
+	adminObject, exit := ac.Service.GetByAdminId(adminId)
+
+	if !exit {
+		return mvc.Response{
+			Object: map[string]interface{}{
+				"status":  "0",
+				"success": "登录失败",
+				"message": "用户名或者密码错误,请重新登录",
+			},
+		}
+	}
+
 	//解析成功
 	return mvc.Response{
 		Object: map[string]interface{}{
 			"status": utils.RECODE_OK,
-			"data":   admin.AdminToRespDesc(),
+			"data":   adminObject.AdminToRespDesc(),
 		},
 	}
 }
-
 
 /**
  * 管理员登录功能
@@ -129,18 +144,18 @@ func (ac *AdminController) GetInfo() mvc.Result {
  */
 func (ac *AdminController) PostLogin(context iris.Context) mvc.Result {
 
-	iris.New().Logger().Info("Admin login")
+	iris.New().Logger().Info(" admin login ")
 
 	var adminLogin AdminLogin
 	ac.Ctx.ReadJSON(&adminLogin)
 
-	//参数校验
+	//数据参数检验
 	if adminLogin.UserName == "" || adminLogin.Password == "" {
 		return mvc.Response{
 			Object: map[string]interface{}{
 				"status":  "0",
 				"success": "登录失败",
-				"message": "用户名或密码为空，请重新填写后尝试登录",
+				"message": "用户名或密码为空,请重新填写后尝试登录",
 			},
 		}
 	}
@@ -154,20 +169,87 @@ func (ac *AdminController) PostLogin(context iris.Context) mvc.Result {
 			Object: map[string]interface{}{
 				"status":  "0",
 				"success": "登录失败",
-				"message": "用户名或者密码错误，请重新登录",
+				"message": "用户名或者密码错误,请重新登录",
 			},
 		}
 	}
 
-	//管理员存在，设置session
-	userByte, _ := json.Marshal(admin)
-	ac.Session.Set(ADMIN,userByte)
+	//管理员存在 设置session
+	//userByte := admin.Encoder()
+	ac.Session.Set(ADMIN, admin.AdminId)
 
 	return mvc.Response{
 		Object: map[string]interface{}{
 			"status":  "1",
 			"success": "登录成功",
 			"message": "管理员登录成功",
+		},
+	}
+}
+
+/**
+ * 获取所有的管理员列表
+ * url：
+ */
+func (ac *AdminController) GetAll() mvc.Result {
+	iris.New().Logger().Info(" 获取所有管理员列表 ")
+
+	offsetStr := ac.Ctx.FormValue("offset")
+	limitStr := ac.Ctx.FormValue("limit")
+	var offset int
+	var limit int
+
+	//判断offset和limit两个变量任意一个都不能为""
+	if offsetStr == "" || limitStr == "" {
+		return mvc.Response{
+			Object: map[string]interface{}{
+				"status":  utils.RECODE_FAIL,
+				"type":    utils.RESPMSG_ERROR_USERLIST,
+				"message": utils.Recode2Text(utils.RESPMSG_ERROR_USERLIST),
+			},
+		}
+	}
+
+	offset, err := strconv.Atoi(offsetStr)
+	limit, err = strconv.Atoi(limitStr)
+	if err != nil {
+		return mvc.Response{
+			Object: map[string]interface{}{
+				"status":  utils.RECODE_FAIL,
+				"type":    utils.RESPMSG_ERROR_USERLIST,
+				"message": utils.Recode2Text(utils.RESPMSG_ERROR_USERLIST),
+			},
+		}
+	}
+
+	//做页数的限制检查
+	if offset <= 0 {
+		offset = 0
+	}
+
+	//做最大的限制
+	if limit > MaxLimit {
+		limit = MaxLimit
+	}
+
+	adminList := ac.Service.GetAdminList(offset, limit)
+	if len(adminList) == 0 {
+		return mvc.Response{
+			Object: map[string]interface{}{
+				"status":  utils.RECODE_FAIL,
+				"type":    utils.RESPMSG_ERROR_USERLIST,
+				"message": utils.Recode2Text(utils.RESPMSG_ERROR_USERLIST),
+			},
+		}
+	}
+	var respList []interface{}
+	for _, admin := range adminList {
+		respList = append(respList, admin.AdminToRespDesc())
+	}
+	return mvc.Response{
+		Object: map[string]interface{}{
+			"status": utils.RECODE_OK,
+			"data":   respList,
 		},
 	}
 }

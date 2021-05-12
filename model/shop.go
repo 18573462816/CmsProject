@@ -1,16 +1,18 @@
 package model
 
+import "strconv"
+
 /**
  * 商店实体结构体定义
  */
 type Shop struct {
-	Id                          int        `xorm:"pk autoincr" json:"item_id"`      //店铺Id
+	ShopId                      int        `xorm:"pk autoincr" json:"item_id"`      //店铺Id
 	Name                        string     `xorm:"varchar(32)" json:"name"`         //店铺名称
 	Address                     string     `xorm:"varchar(128)" json:"address"`     //店铺地址
 	Latitude                    float32    `json:"latitude"`                        //经度
 	Longitude                   float32    `json:"longitude"`                       //纬度
 	Description                 string     `xorm:"varchar(255)" json:"description"` //店铺简介
-	Phone                       string     `json:"phone"`                           //店铺电话
+	Phone                       int        `json:"phone"`                           //店铺电话
 	PromotionInfo               string     `json:"promotion_info"`                  //店铺标语
 	FloatDeliveryFee            int        `json:"float_delivery_fee"`              //配送费
 	FloatMinimumOrderAmount     int        `json:"float_minimum_order_amount"`      //起送价
@@ -34,3 +36,21 @@ type Shop struct {
 	Activities                  []*Service `xorm:"-"`                               //商家提供的服务 结构体
 }
 
+/**
+ * 从数据库中查询出来的实体转变成前端所需要的json格式
+ */
+func (this *Shop) ShopToRespDesc() interface{} {
+	respDesc := map[string]interface{}{
+		"id":               this.ShopId,
+		"category":         this.Category,
+		"description":      this.Description,
+		"name":             this.Name,
+		"address":          this.Address,
+		"phone":            strconv.Itoa(this.Phone),
+		"status":           this.Status,
+		"recent_order_num": this.RecentOrderNum,
+		"rating_count":     this.RatingCount,
+		"rating":           this.Rating,
+	}
+	return respDesc
+}

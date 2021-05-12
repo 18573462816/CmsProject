@@ -1,8 +1,10 @@
 package service
 
 import (
+	"fmt"
 	"github.com/go-xorm/xorm"
 	"irisDemo/CmsProject/model"
+	"math/rand"
 	"time"
 )
 
@@ -36,6 +38,11 @@ func NewStatisService(engine *xorm.Engine) StatisService {
  * 查询某一日管理员的增长数量
  */
 func (ss *statisService) GetAdminDailyCount(date string) int64 {
+
+	if date == "NaN-NaN-NaN" { //当日增长数据请求
+		date = time.Now().Format("2006-01-02")
+	}
+
 	//查询如期date格式解析
 	startDate, err := time.Parse("2006-01-02", date)
 	if err != nil {
@@ -48,13 +55,19 @@ func (ss *statisService) GetAdminDailyCount(date string) int64 {
 		return 0
 	}
 
-	return result
+	fmt.Println(result)
+	//return result
+	return int64(rand.Intn(100))
 }
 
 /**
  * 查询某一日订单的单日增长数量
  */
 func (ss *statisService) GetOrderDailyCount(date string) int64 {
+
+	if date == "NaN-NaN-NaN" { //当日增长数据请求
+		date = time.Now().Format("2006-01-02")
+	}
 
 	startDate, err := time.Parse("2006-01-02", date)
 	if err != nil {
@@ -67,13 +80,19 @@ func (ss *statisService) GetOrderDailyCount(date string) int64 {
 		return 0
 	}
 
-	return result
+	fmt.Println(result)
+	//return result
+	return int64(rand.Intn(100))
 }
 
 /**
  * 查询某一日用户的单日增长数量
  */
 func (ss *statisService) GetUserDailyCount(date string) int64 {
+
+	if date == "NaN-NaN-NaN" { //当日增长数据请求
+		date = time.Now().Format("2006-01-02")
+	}
 
 	startDate, err := time.Parse("2006-01-02", date)
 	if err != nil {
@@ -86,5 +105,7 @@ func (ss *statisService) GetUserDailyCount(date string) int64 {
 		return 0
 	}
 
-	return result
+	fmt.Println(result)
+	//return result
+	return int64(rand.Intn(100))
 }

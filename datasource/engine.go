@@ -3,6 +3,8 @@ package datasource
 import (
 	_ "github.com/go-sql-driver/mysql" //不能忘记导入
 	"github.com/go-xorm/xorm"
+	"github.com/kataras/iris/v12"
+	"irisDemo/CmsProject/config"
 	"irisDemo/CmsProject/model"
 )
 /**
@@ -10,13 +12,26 @@ import (
  */
 func NewMysqlEngine() *xorm.Engine {
 
+	initConfig := config.InitConfig()
+	if initConfig == nil {
+		return nil
+	}
+
+	database := initConfig.DataBase
+	//"root:yu271400@/qfCms?charset=utf8"
+	dataSourceName := database.User + ":" + database.Pwd + "@tcp(" + database.Host + ")/" + database.Database + "?charset=utf8"
+
 	//数据库引擎
-	engine, err := xorm.NewEngine("mysql", "root:123456@/testCms?charset=utf8")
+	//engine, err := xorm.NewEngine("mysql", "root:123456@/testCms?charset=utf8")
+	engine, err := xorm.NewEngine(database.Drive, dataSourceName)
+	//engine, err := xorm.NewEngine(database.Drive, database.User+":"+database.Pwd+"@/"+database.Database+"?charset=utf8")
+
+	iris.New().Logger().Info(database)
 
 	//根据实体创建表
-	err = engine.CreateTables(
-		new(model.User),
-		new(model.UserOrder))
+	//err = engine.CreateTables(
+	//	new(model.User),
+	//	new(model.UserOrder))
 
 	//同步数据库结构：主要负责对数据结构实体同步更新到数据库表
 	/**
@@ -31,9 +46,13 @@ func NewMysqlEngine() *xorm.Engine {
 		new(model.Permission),
 		new(model.City),
 		new(model.Admin),
-		new(model.AdminPermission),
 		new(model.User),
-		new(model.UserOrder))
+		new(model.UserOrder),
+		new(model.Address),
+		new(model.Shop),
+		new(model.OrderStatus),
+		new(model.FoodCategory),
+		new(model.Food))
 
 	if err != nil {
 		panic(err.Error())

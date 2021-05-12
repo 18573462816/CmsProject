@@ -23,6 +23,12 @@ type StatisController struct {
 	Session *sessions.Session
 }
 
+var (
+	ADMINMODULE = "ADMIN_"
+	USERMODULE  = "USER_"
+	ORDERMODULE = "ORDER_"
+)
+
 /**
  * 解析统计功能路由请求
  */
@@ -32,6 +38,7 @@ func (sc *StatisController) GetCount() mvc.Result {
 
 	var pathSlice []string
 	if path != "" {
+		//字符串切割，结果为："","statis","user","2019-03-10","count"
 		pathSlice = strings.Split(path, "/")
 	}
 
@@ -46,18 +53,58 @@ func (sc *StatisController) GetCount() mvc.Result {
 	}
 
 	//将最前面的去掉
+	//"statis","user","2019-03-10","count"
 	pathSlice = pathSlice[1:]
 	model := pathSlice[1]
 	date := pathSlice[2]
 	var result int64
 	switch model {
 	case "user":
-		iris.New().Logger().Error(date) //时间
-		result = sc.Service.GetUserDailyCount(date)
+		userResult := sc.Session.Get(USERMODULE + date)
+		if userResult != nil {
+			userResult = userResult.(float64)
+			return mvc.Response{
+				Object: map[string]interface{}{
+					"status": utils.RECODE_OK,
+					"count":  userResult,
+				},
+			}
+		} else {
+			iris.New().Logger().Error(date) //时间
+			result = sc.Service.GetUserDailyCount(date)
+			//设置缓存
+			// date： 2019-04-23
+			//  USER_2019-04-23 result
+			sc.Session.Set(USERMODULE+date, result)
+		}
 	case "order":
-		result = sc.Service.GetOrderDailyCount(date)
+		orderStatis := sc.Session.Get(ORDERMODULE + date)
+		if orderStatis != nil {
+			orderStatis = orderStatis.(float64)
+			return mvc.Response{
+				Object: map[string]interface{}{
+					"status": utils.RECODE_OK,
+					"count":  orderStatis,
+				},
+			}
+		} else {
+			result = sc.Service.GetOrderDailyCount(date)
+			sc.Session.Set(ORDERMODULE+date, result)
+		}
 	case "admin":
-		result = sc.Service.GetAdminDailyCount(date)
+		adminStatis := sc.Session.Get(ADMINMODULE + date)
+		if adminStatis != nil {
+			adminStatis = adminStatis.(float64)
+			return mvc.Response{
+				Object: map[string]interface{}{
+					"status": utils.RECODE_OK,
+					"count":  adminStatis,
+				},
+			}
+		} else {
+			result = sc.Service.GetAdminDailyCount(date)
+			sc.Session.Set(ADMINMODULE, result)
+		}
 	}
 
 	return mvc.Response{

@@ -18,8 +18,10 @@ const MaxLimit = 50
 type UserController struct {
 	//上下文对象
 	Ctx iris.Context
+
 	//user service
 	UserService service.UserService
+
 	//session对象
 	Session *sessions.Session
 }
@@ -67,7 +69,6 @@ func (uc *UserController) GetList() mvc.Result {
 
 	//判断offset和limit两个变量任意一个都不能为""
 	if offsetStr == "" || limitStr == "" {
-
 		return mvc.Response{
 			Object: map[string]interface{}{
 				"status":  utils.RECODE_FAIL,
